@@ -197,21 +197,28 @@ class SessionController extends Controller
         $idSensorForGivenIdSession=$commandResult[0]["idSensor"];
 
         //wyciaganie probek dla podanego id sensora, tj.  $idSensorForGivenIdSession
-        $requestSql='SELECT idSensor,value_1,value_2,value_3,timestamp FROM sample where idSensor=:idSensor';
+        $requestSql='SELECT idSample, idSensor,value_1,value_2,value_3,timestamp FROM sample where idSensor=:idSensor';
         $command = $connection->createCommand($requestSql);
         $command->bindValue(':idSensor', $idSensorForGivenIdSession);
+        $listOfSamples=$command->queryAll();
+
+        $requestSql = 'SELECT tp, start, samples FROM session where idSession=:idSession';
+        $command = $connection->createCommand($requestSql);
+        $command->bindValue(':idSession', $_GET['idSession']);
         $commandResult=$command->queryAll();
 
+        $startTime=strtotime($commandResult[0]["start"])*1000 + ((int)(explode(".",$commandResult[0]["start"])[1]))/1000;
 
-        return $this->render('findallsamplessql',['data'=>json_encode($commandResult)]);
+        $a=array();
+        foreach ($listOfSamples as &$oneSample)
+        {
+            $oneSampleTimestamp = strtotime($oneSample["timestamp"])*1000 + ((int)(explode(".",$oneSample["timestamp"])[1]))/1000; // 
+            if(($oneSampleTimestamp-$startTime) == 0 )
+            {
+                array_push($a, $oneSample);
+                $startTime = $startTime + (int) $commandResult[0]["tp"];
+            }
+        }
+        return $this->render('findallsamplessql',['data'=>json_encode(array_slice($a,0,$commandResult[0]["samples"]))]);
     }
-
-
-
-
-
-
-
-
-
 }
